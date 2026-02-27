@@ -205,40 +205,42 @@ function calculateTrustScore(hop, pathCount) {
   return Math.min(1, distanceWeight * (1 + pathBonus));
 }
 
-// BFS to build the graph
-const MAX_NODES_PER_HOP = 300;  // cap per hop to keep it snappy
-const MAX_TOTAL_NODES   = 800;  // hard total cap
+// BFS to build the graph — per-hop caps to ensure visual diversity
+const HOP_CAPS = { 0: 50, 1: 80, 2: 300, 3: 400 }; // max nodes per hop level
+const MAX_EDGES = 2000;
 
 async function buildGraph(rootPubkey, maxHops, seedPubkeys = null) {
   const hex = toHex(rootPubkey);
   if (!hex) throw new Error('Invalid pubkey');
 
-  // Use seed pubkeys if provided (for profile-based queries)
   const rootHexes = seedPubkeys ? seedPubkeys.map(s => toHex(s)).filter(Boolean) : [hex];
 
   const visited = new Map(); // pubkey -> { hop, paths, isRoot }
+  const hopCount = {};       // hop -> count of nodes at that level
   const edges = [];
-  const followsMap = new Map(); // pubkey -> follows array
+  const followsMap = new Map();
 
-  // Initialize with roots at hop 0
+  // Initialize seeds at hop 0
   for (const root of rootHexes) {
     visited.set(root, { hop: 0, paths: 1, isRoot: true });
+    hopCount[0] = (hopCount[0] || 0) + 1;
   }
 
   let currentLayer = rootHexes;
 
   for (let hop = 1; hop <= maxHops; hop++) {
     if (currentLayer.length === 0) break;
-    if (visited.size >= MAX_TOTAL_NODES) break;
+
+    const cap = HOP_CAPS[hop] ?? 200;
 
     // Cap current layer to avoid relay overload
-    if (currentLayer.length > MAX_NODES_PER_HOP) {
-      currentLayer = currentLayer.slice(0, MAX_NODES_PER_HOP);
+    if (currentLayer.length > cap * 2) {
+      currentLayer = currentLayer.slice(0, cap * 2); // query a bit more than we'll keep
     }
 
-    console.log(`Hop ${hop}: Processing ${currentLayer.length} nodes... (total visited: ${visited.size})`);
+    console.log(`Hop ${hop}: querying ${currentLayer.length} nodes (cap=${cap})...`);
 
-    // Fetch follow lists in batches of 50 to avoid relay timeouts
+    // Fetch follow lists in batches of 50
     const BATCH = 50;
     for (let i = 0; i < currentLayer.length; i += BATCH) {
       const batch = currentLayer.slice(i, i + BATCH);
@@ -249,26 +251,31 @@ async function buildGraph(rootPubkey, maxHops, seedPubkeys = null) {
     }
 
     const nextLayer = new Set();
+    hopCount[hop] = 0;
 
     for (const pubkey of currentLayer) {
       const follows = followsMap.get(pubkey) || [];
 
       for (const follow of follows) {
-        // Add edge (cap edges too)
-        if (edges.length < 3000) {
-          edges.push({ source: pubkey, target: follow, type: 'follow' });
-        }
-
         if (visited.has(follow)) {
+          // Already seen — increment path count if same hop
           const existing = visited.get(follow);
           if (existing.hop === hop) existing.paths++;
-        } else if (visited.size < MAX_TOTAL_NODES) {
+        } else if (hopCount[hop] < cap) {
+          // New node — add if under this hop's cap
           visited.set(follow, { hop, paths: 1, isRoot: false });
+          hopCount[hop]++;
           if (hop < maxHops) nextLayer.add(follow);
+        }
+
+        // Always record the edge (connects visible nodes)
+        if (edges.length < MAX_EDGES && visited.has(follow)) {
+          edges.push({ source: pubkey, target: follow, type: 'follow' });
         }
       }
     }
 
+    console.log(`  → Added ${hopCount[hop]} nodes at hop ${hop}`);
     currentLayer = Array.from(nextLayer);
   }
   

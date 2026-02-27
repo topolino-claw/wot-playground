@@ -485,57 +485,66 @@ async function loadMetadataLazy(nodes) {
 function renderGraph() {
   const container = document.getElementById('graph');
   container.innerHTML = '';
-  
+
   const nodes = graphData.nodes.map(n => ({
     ...n,
     color: getNodeColor(n),
     size: getNodeSize(n)
   }));
-  
-  const links = graphData.edges.map(e => ({
-    source: e.source,
-    target: e.target,
-    type: e.type
-  }));
-  
+
+  // Only keep edges where BOTH endpoints exist in capped node set
+  const nodeIds = new Set(nodes.map(n => n.id));
+  const links = (graphData.edges || [])
+    .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
+    .map(e => ({ source: e.source, target: e.target, type: e.type }));
+
   const data = { nodes, links };
-  
+  const nodeLabel = n =>
+    `${n.name && !n.name.startsWith('npub') ? n.name : n.npub.slice(0,16)+'…'} · ${Math.round(n.trustScore * 100)}% · hop ${n.hops}`;
+
   if (is3D) {
     graph = ForceGraph3D()(container)
       .graphData(data)
-      .nodeLabel(n => `${n.name}\n${Math.round(n.trustScore * 100)}% trusted`)
-      .nodeColor(n => n.color)
-      .nodeRelSize(1)
-      .nodeVal(n => n.size)
-      .linkColor(() => COLORS.edge)
-      .linkOpacity(0.3)
-      .linkWidth(0.5)
-      .onNodeClick(handleNodeClick)
-      .onNodeHover(handleNodeHover)
-      .backgroundColor('#0a0a0f');
-  } else {
-    graph = ForceGraph()(container)
-      .graphData(data)
-      .nodeLabel(n => `${n.name}\n${Math.round(n.trustScore * 100)}% trusted`)
+      .nodeLabel(nodeLabel)
       .nodeColor(n => n.color)
       .nodeRelSize(4)
       .nodeVal(n => n.size)
-      .linkColor(() => COLORS.edge)
-      .linkWidth(0.5)
+      .nodeResolution(16)
+      .nodeOpacity(0.92)
+      .linkColor(() => 'rgba(99,102,241,0.18)')
+      .linkWidth(0.6)
+      .linkDirectionalParticles(1)
+      .linkDirectionalParticleWidth(1)
       .onNodeClick(handleNodeClick)
       .onNodeHover(handleNodeHover)
-      .backgroundColor('#0a0a0f');
+      .backgroundColor('#0a0a0f')
+      .d3AlphaDecay(0.02)
+      .d3VelocityDecay(0.25);
+  } else {
+    graph = ForceGraph()(container)
+      .graphData(data)
+      .nodeLabel(nodeLabel)
+      .nodeColor(n => n.color)
+      .nodeRelSize(5)
+      .nodeVal(n => n.size)
+      .linkColor(() => 'rgba(99,102,241,0.2)')
+      .linkWidth(0.8)
+      .onNodeClick(handleNodeClick)
+      .onNodeHover(handleNodeHover)
+      .backgroundColor('#0a0a0f')
+      .d3AlphaDecay(0.02)
+      .d3VelocityDecay(0.3)
+      .warmupTicks(50)
+      .cooldownTicks(300);
   }
-  
+
   setTimeout(() => {
-    if (graph.zoomToFit) {
-      graph.zoomToFit(400, 50);
-    }
-  }, 500);
+    if (graph.zoomToFit) graph.zoomToFit(600, 80);
+  }, 1200);
 }
 
 function getNodeColor(node) {
-  if (node.isRoot) return COLORS.root;
+  if (node.isRoot || node.hops === 0) return COLORS.root;
   const trust = node.trustScore;
   if (trust >= 0.7) return COLORS.high;
   if (trust >= 0.3) return COLORS.medium;
@@ -543,8 +552,10 @@ function getNodeColor(node) {
 }
 
 function getNodeSize(node) {
-  const baseSize = node.isRoot ? 10 : 4;
-  return baseSize + (node.trustScore * 6);
+  if (node.isRoot || node.hops === 0) return 25;
+  if (node.hops === 1) return 10 + (node.trustScore * 5);
+  if (node.hops === 2) return 4 + (node.trustScore * 3);
+  return 2 + (node.trustScore * 2);
 }
 
 // ============================================
