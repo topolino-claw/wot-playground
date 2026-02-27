@@ -116,7 +116,9 @@ async function loadGraph() {
     loadMetadataLazy(graphData.nodes);
   } catch (error) {
     console.error('Failed to load graph:', error);
-    alert('Failed to load graph. Please try again.');
+    showLoading(false);
+    showError('Failed to load graph — ' + (error.message || 'unknown error') + '. Try a different profile or fewer hops.');
+    return;
   } finally {
     showLoading(false);
   }
@@ -336,6 +338,20 @@ function updateStats(stats) {
 function showLoading(show) {
   document.getElementById('loading').classList.toggle('hidden', !show);
   document.getElementById('load-btn').disabled = show;
+}
+
+function showError(msg) {
+  let el = document.getElementById('error-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'error-banner';
+    el.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#7f1d1d;color:#fca5a5;padding:12px 20px;border-radius:8px;border:1px solid #ef4444;z-index:1000;font-size:13px;max-width:500px;text-align:center;cursor:pointer;';
+    el.title = 'Click to dismiss';
+    el.onclick = () => el.remove();
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  setTimeout(() => el?.remove(), 8000);
 }
 
 // Debounce helper
