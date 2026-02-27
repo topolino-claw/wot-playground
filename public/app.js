@@ -168,37 +168,41 @@ function renderGraph() {
     color: getNodeColor(n),
     size: getNodeSize(n)
   }));
-  
-  const links = graphData.edges.map(e => ({
-    source: e.source,
-    target: e.target,
-    type: e.type
-  }));
-  
+
+  // Only include edges where BOTH endpoints exist in the node set (capped at 800)
+  const nodeIds = new Set(nodes.map(n => n.id));
+  const links = graphData.edges
+    .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
+    .map(e => ({ source: e.source, target: e.target, type: e.type }));
+
   const data = { nodes, links };
   
   if (is3D) {
     graph = ForceGraph3D()(container)
       .graphData(data)
-      .nodeLabel(n => `${n.name}\n${Math.round(n.trustScore * 100)}% trusted`)
+      .nodeLabel(n => `${n.name || n.npub.slice(0,12)+'…'} · ${Math.round(n.trustScore * 100)}% · ${n.hops} hop${n.hops!==1?'s':''}`)
       .nodeColor(n => n.color)
-      .nodeRelSize(1)
+      .nodeRelSize(4)
       .nodeVal(n => n.size)
+      .nodeResolution(16)
+      .nodeOpacity(0.95)
       .linkColor(() => COLORS.edge)
-      .linkOpacity(0.3)
-      .linkWidth(0.5)
+      .linkOpacity(0.2)
+      .linkWidth(0.8)
+      .linkDirectionalParticles(1)
+      .linkDirectionalParticleWidth(1.2)
       .onNodeClick(handleNodeClick)
       .onNodeHover(handleNodeHover)
       .backgroundColor('#0a0a0f');
   } else {
     graph = ForceGraph()(container)
       .graphData(data)
-      .nodeLabel(n => `${n.name}\n${Math.round(n.trustScore * 100)}% trusted`)
+      .nodeLabel(n => `${n.name || n.npub.slice(0,12)+'…'} · ${Math.round(n.trustScore * 100)}%`)
       .nodeColor(n => n.color)
-      .nodeRelSize(4)
+      .nodeRelSize(5)
       .nodeVal(n => n.size)
       .linkColor(() => COLORS.edge)
-      .linkWidth(0.5)
+      .linkWidth(1)
       .onNodeClick(handleNodeClick)
       .onNodeHover(handleNodeHover)
       .backgroundColor('#0a0a0f');
@@ -223,16 +227,40 @@ function getNodeColor(node) {
 
 // Get node size based on trust score
 function getNodeSize(node) {
-  const baseSize = node.isRoot ? 10 : 4;
-  return baseSize + (node.trustScore * 6);
+  if (node.isRoot) return 20;
+  if (node.hops === 1) return 8 + (node.trustScore * 6);
+  if (node.hops === 2) return 4 + (node.trustScore * 4);
+  return 2 + (node.trustScore * 2);
 }
 
-// Handle node click
-function handleNodeClick(node) {
+// Handle node click — fetch metadata immediately if not loaded yet
+async function handleNodeClick(node) {
   if (!node) return;
-  
   selectedNode = node;
-  showNodeDetails(node);
+  showNodeDetails(node); // show immediately with what we have
+
+  // If name is still a placeholder, fetch metadata now
+  const isPlaceholder = !node.picture && (!node.name || node.name.startsWith('npub1'));
+  if (isPlaceholder) {
+    try {
+      const res = await fetch('/api/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pubkeys: [node.id] })
+      });
+      if (res.ok) {
+        const profiles = await res.json();
+        const p = profiles[node.id];
+        if (p) {
+          node.name    = p.name    || node.name;
+          node.about   = p.about   || node.about;
+          node.picture = p.picture || node.picture;
+          // Re-render the panel with fresh data if this node is still selected
+          if (selectedNode?.id === node.id) showNodeDetails(node);
+        }
+      }
+    } catch (e) { /* non-fatal */ }
+  }
 }
 
 // Handle node hover
@@ -247,7 +275,8 @@ function showNodeDetails(node) {
   
   // Avatar
   const avatar = document.getElementById('node-avatar');
-  avatar.src = node.picture || '';
+  avatar.onerror = () => { avatar.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`; };
+  avatar.src = node.picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`;
   
   // Name
   document.getElementById('node-name').textContent = node.name || 'Unknown';

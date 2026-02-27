@@ -99,6 +99,24 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
+// Oracle stats endpoint
+app.get('/api/oracle/stats', async (req, res) => {
+  try {
+    const { oracleClient } = oracleApi;
+    const [health, stats] = await Promise.all([
+      oracleClient.checkHealth(),
+      oracleClient.getStats()
+    ]);
+    res.json({
+      available: !!health,
+      health,
+      stats
+    });
+  } catch (error) {
+    res.json({ available: false, error: error.message });
+  }
+});
+
 // Serve index.html for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

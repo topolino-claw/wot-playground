@@ -1,6 +1,55 @@
 const WebSocket = require('ws');
 const { nip19 } = require('nostr-tools');
 
+// ============================================
+// Oracle Client (direct API)
+// Used for server-side stats and optional distance lookups
+// ============================================
+
+const ORACLE_URL = 'https://wot-oracle.mappingbitcoin.com';
+const ORACLE_TIMEOUT = 10000;
+
+const oracleClient = {
+  baseUrl: ORACLE_URL,
+  
+  async fetch(endpoint, timeout = ORACLE_TIMEOUT) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (e) {
+      clearTimeout(timeoutId);
+      return null;
+    }
+  },
+  
+  async checkHealth() {
+    return await this.fetch('/health');
+  },
+  
+  async getStats() {
+    return await this.fetch('/stats');
+  },
+  
+  async getDistance(fromHex, toHex) {
+    const result = await this.fetch(`/distance?from=${fromHex}&to=${toHex}`);
+    if (!result) return null;
+    return {
+      from: result.from,
+      to: result.to,
+      hops: result.hops,
+      pathCount: result.path_count,
+      mutualFollow: result.mutual_follow
+    };
+  }
+};
+
 // Cache with TTL
 const graphCache = new Map();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
@@ -323,4 +372,11 @@ setInterval(() => {
   }
 }, 60000);
 
-module.exports = { getGraph, toHex, toNpub, calculateTrustScore, fetchProfilesBatch: fetchProfiles };
+module.exports = { 
+  getGraph, 
+  toHex, 
+  toNpub, 
+  calculateTrustScore, 
+  fetchProfilesBatch: fetchProfiles,
+  oracleClient 
+};
