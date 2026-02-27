@@ -1,20 +1,21 @@
 {
   "name": "nostr-devs",
-  "label": "Nostr Protocol Devs 👨‍💻",
-  "description": "Core Nostr protocol developers and contributors.",
+  "label": "Nostr Devs 🔧",
+  "description": "Protocol developers, client builders and relay operators. Tight follow graphs, maximum technical signal.",
   "root": "npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6",
   "seeds": [
     "npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6",
-    "npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m",
+    "npub1xtscya34g58tk0z605fvr788k263gsu6cy9x0mhnm87echrgufzsevkk5s",
     "npub1gcxzte5zlkncx26j68ez60fzkvtkm9e0vrwdcvsjakxf9mu9qewqlfnj5z",
+    "npub12rv5lskctqxxs2c8rf2zlzc7xx3qpvzs3w4etgemauy9thegr43sf485vg",
+    "npub107jk7htfv243u0x5ynn43scq9wrxtaasmrwwa8lfu2ydwag6efrql394xl",
+    "npub1sn0wdenkukak0d9dfczzeacvhkrgz92ak56egt7vdgzn8ssq6mvq9dg7x7",
+    "npub1nstrcu63lzpjkz94djajuz2evrgu2psd66cwgc0gz0c0qazezx0q9urg5l",
+    "npub1hu3hdctm5nkzd8gslnyedfr5ddz3z547jqcl5j88g4fame2jd08qh6h8nh",
+    "npub1j8y6tcdfw3q3f3h794s6un0gyc5742s0k5h5s2yqj0r70cpklqeqjavrvg",
+    "npub16c0nh3dnadzqpm76uctf5hqhe2lny344zsmpm6feee9p5rdxaa9q586nvr",
     "npub1l2vyh47mk2p0qlsku7hg0vn29faehy9hy34ygaclpn66ukqp3afqutajft",
-    "npub1elta7cneng3w8p9y4dw633qzdjr4kyvaparuyuttyrx6e8xp7xnq32cume",
-    "npub1v0lxxxxutpvrelsksy8cdhgfux9l6a42hsj2qzquu2zk7vc9qnkszrqj49",
-    "npub12262qa4uhw7u8gdwlgmntqtv7aye8vdcmvszkqwvvffqzqk2pzysqqpfq3",
-    "npub1rxysxnjkhrmqd3ey73dp9n5y5yvyzcs64acc9g0k2epcpwwyya4spvhnp8",
-    "npub1a2cww4kn9wqte4ry70vyfwqyqvpswksna27rtpd6695r9kf4lmrsa0t5m8",
-    "npub148fndptp7xmxcmj0ld2ypqqqg8yxurwqdxgmqj74mxn65f2xzp0sjmvzky",
-    "npub1wmr34t36fy03m8hvgl96zl3znndyzyaqhwmwdtshwmtkg03fetaqhjg240"
+    "npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc"
   ],
   "hop_weights": [1.0, 0.5, 0.25, 0.1],
   "max_hops": 3

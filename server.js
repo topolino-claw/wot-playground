@@ -77,6 +77,23 @@ app.get('/api/consensus', async (req, res) => {
   }
 });
 
+// Lazy metadata fetch — frontend calls this after graph renders
+// POST /api/metadata  body: { pubkeys: ["hex1","hex2",...] }
+app.post('/api/metadata', async (req, res) => {
+  try {
+    const { pubkeys } = req.body;
+    if (!Array.isArray(pubkeys) || pubkeys.length === 0) {
+      return res.status(400).json({ error: 'pubkeys array required' });
+    }
+    const batch = pubkeys.slice(0, 100); // max 100 per call
+    const profiles = await oracleApi.fetchProfilesBatch(batch, 8000);
+    res.json(profiles);
+  } catch (error) {
+    console.error('Metadata API error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });

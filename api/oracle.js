@@ -17,6 +17,7 @@ const RELAYS = [
 
 // Convert npub to hex if needed
 function toHex(pubkey) {
+  if (!pubkey || typeof pubkey !== 'string') return null;
   if (pubkey.startsWith('npub')) {
     try {
       const decoded = nip19.decode(pubkey);
@@ -156,61 +157,69 @@ function calculateTrustScore(hop, pathCount) {
 }
 
 // BFS to build the graph
+const MAX_NODES_PER_HOP = 300;  // cap per hop to keep it snappy
+const MAX_TOTAL_NODES   = 800;  // hard total cap
+
 async function buildGraph(rootPubkey, maxHops, seedPubkeys = null) {
   const hex = toHex(rootPubkey);
   if (!hex) throw new Error('Invalid pubkey');
-  
+
   // Use seed pubkeys if provided (for profile-based queries)
   const rootHexes = seedPubkeys ? seedPubkeys.map(s => toHex(s)).filter(Boolean) : [hex];
-  
+
   const visited = new Map(); // pubkey -> { hop, paths, isRoot }
   const edges = [];
   const followsMap = new Map(); // pubkey -> follows array
-  
+
   // Initialize with roots at hop 0
   for (const root of rootHexes) {
     visited.set(root, { hop: 0, paths: 1, isRoot: true });
   }
-  
+
   let currentLayer = rootHexes;
-  
+
   for (let hop = 1; hop <= maxHops; hop++) {
     if (currentLayer.length === 0) break;
-    
-    console.log(`Hop ${hop}: Processing ${currentLayer.length} nodes...`);
-    
-    // Fetch follow lists for current layer
-    const followEvents = await queryRelays({ kinds: [3], authors: currentLayer }, 10000);
-    
-    for (const event of followEvents) {
-      followsMap.set(event.pubkey, getFollows(event));
+    if (visited.size >= MAX_TOTAL_NODES) break;
+
+    // Cap current layer to avoid relay overload
+    if (currentLayer.length > MAX_NODES_PER_HOP) {
+      currentLayer = currentLayer.slice(0, MAX_NODES_PER_HOP);
     }
-    
+
+    console.log(`Hop ${hop}: Processing ${currentLayer.length} nodes... (total visited: ${visited.size})`);
+
+    // Fetch follow lists in batches of 50 to avoid relay timeouts
+    const BATCH = 50;
+    for (let i = 0; i < currentLayer.length; i += BATCH) {
+      const batch = currentLayer.slice(i, i + BATCH);
+      const followEvents = await queryRelays({ kinds: [3], authors: batch }, 6000);
+      for (const event of followEvents) {
+        followsMap.set(event.pubkey, getFollows(event));
+      }
+    }
+
     const nextLayer = new Set();
-    
+
     for (const pubkey of currentLayer) {
       const follows = followsMap.get(pubkey) || [];
-      
+
       for (const follow of follows) {
-        // Add edge
-        edges.push({ source: pubkey, target: follow, type: 'follow' });
-        
+        // Add edge (cap edges too)
+        if (edges.length < 3000) {
+          edges.push({ source: pubkey, target: follow, type: 'follow' });
+        }
+
         if (visited.has(follow)) {
-          // Already visited, increment path count
           const existing = visited.get(follow);
-          if (existing.hop === hop) {
-            existing.paths++;
-          }
-        } else {
-          // New node
+          if (existing.hop === hop) existing.paths++;
+        } else if (visited.size < MAX_TOTAL_NODES) {
           visited.set(follow, { hop, paths: 1, isRoot: false });
-          if (hop < maxHops) {
-            nextLayer.add(follow);
-          }
+          if (hop < maxHops) nextLayer.add(follow);
         }
       }
     }
-    
+
     currentLayer = Array.from(nextLayer);
   }
   
@@ -225,28 +234,23 @@ async function buildGraph(rootPubkey, maxHops, seedPubkeys = null) {
     }
   }
   
-  // Fetch profile metadata for all nodes
-  const allPubkeys = Array.from(visited.keys());
-  console.log(`Fetching profiles for ${allPubkeys.length} nodes...`);
-  const profiles = await fetchProfiles(allPubkeys.slice(0, 500), 8000); // Limit to 500 for performance
-  
-  // Build nodes array
+  // Build nodes array WITHOUT fetching profiles (done lazily by frontend)
   const nodes = [];
   let totalTrust = 0;
   let maxDist = 0;
   let mutualCount = 0;
-  
+
   for (const [pubkey, info] of visited) {
-    const profile = profiles[pubkey] || { name: '', about: '', picture: '' };
     const trustScore = info.isRoot ? 1.0 : calculateTrustScore(info.hop, info.paths);
     const isMutual = mutuals.has(pubkey);
-    
+    const npub = toNpub(pubkey);
+
     nodes.push({
       id: pubkey,
-      npub: toNpub(pubkey),
-      name: profile.name || toNpub(pubkey).slice(0, 12) + '...',
-      about: profile.about,
-      picture: profile.picture,
+      npub,
+      name: npub.slice(0, 12) + '…', // placeholder until metadata loaded
+      about: '',
+      picture: '',
       trustScore,
       hops: info.hop,
       paths: info.paths,
@@ -319,4 +323,4 @@ setInterval(() => {
   }
 }, 60000);
 
-module.exports = { getGraph, toHex, toNpub, calculateTrustScore };
+module.exports = { getGraph, toHex, toNpub, calculateTrustScore, fetchProfilesBatch: fetchProfiles };

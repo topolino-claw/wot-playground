@@ -112,11 +112,46 @@ async function loadGraph() {
     graphData = await response.json();
     updateStats(graphData.stats);
     renderGraph();
+    // Lazy-load metadata after graph is rendered
+    loadMetadataLazy(graphData.nodes);
   } catch (error) {
     console.error('Failed to load graph:', error);
     alert('Failed to load graph. Please try again.');
   } finally {
     showLoading(false);
+  }
+}
+
+// Fetch metadata in background batches and update nodes in-place
+async function loadMetadataLazy(nodes) {
+  const BATCH = 50;
+  const pubkeys = nodes.map(n => n.id);
+  for (let i = 0; i < pubkeys.length; i += BATCH) {
+    const batch = pubkeys.slice(i, i + BATCH);
+    try {
+      const res = await fetch('/api/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pubkeys: batch })
+      });
+      if (!res.ok) continue;
+      const profiles = await res.json();
+      // Patch nodes in graphData
+      for (const node of graphData.nodes) {
+        const p = profiles[node.id];
+        if (p) {
+          node.name    = p.name    || node.name;
+          node.about   = p.about   || node.about;
+          node.picture = p.picture || node.picture;
+        }
+      }
+      // Refresh graph node labels without full re-render
+      if (graph && graph.nodeLabel) {
+        graph.nodeLabel(n => `${n.name}\n${Math.round(n.trustScore * 100)}% trusted`);
+      }
+    } catch (e) {
+      // non-fatal, keep going
+    }
   }
 }
 
