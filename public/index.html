@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WoT Playground - Nostr Trust Graph</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.5/dist/force-graph.min.js"></script>
 </head>
@@ -19,9 +20,31 @@
         <input type="text" id="search-input" placeholder="Search by name or npub...">
       </div>
       <div class="header-right">
-        <select id="profile-select">
-          <option value="">Loading profiles...</option>
+        <!-- Extension Status -->
+        <div id="extension-status" class="hidden">
+          <div id="extension-badge" class="extension-badge disconnected">
+            <span class="status-dot"></span>
+            <span class="status-text">No Extension</span>
+          </div>
+          <span id="extension-npub" class="extension-npub"></span>
+        </div>
+        
+        <!-- Mode Toggle -->
+        <select id="mode-toggle" class="mode-select">
+          <option value="extension">My WoT</option>
+          <option value="server">Seed Profiles</option>
         </select>
+        
+        <!-- My WoT Button (extension mode) -->
+        <button id="my-wot-btn" class="primary-btn hidden">🔄 Refresh My WoT</button>
+        
+        <!-- Profile Controls (server mode) -->
+        <div id="profile-controls" class="hidden">
+          <select id="profile-select">
+            <option value="">Loading profiles...</option>
+          </select>
+        </div>
+        
         <div class="hops-control">
           <label>Hops:</label>
           <input type="range" id="hops-slider" min="1" max="4" value="2">
@@ -32,6 +55,26 @@
         <button id="load-btn" class="primary-btn">Load Graph</button>
       </div>
     </header>
+
+    <!-- Install Extension Prompt -->
+    <div id="install-prompt" class="install-prompt hidden">
+      <div class="prompt-content">
+        <h2>🔌 Install the Nostr WoT Extension</h2>
+        <p>To explore your personal Web of Trust, install the Nostr WoT browser extension.</p>
+        <p>The extension builds a local graph of your follows and calculates trust scores.</p>
+        <div class="prompt-actions">
+          <a href="https://chromewebstore.google.com/detail/nostr-wot/gfmefgdkmjpjinecjchlangpamhclhdo" target="_blank" class="install-btn">
+            Install Extension →
+          </a>
+          <button id="dismiss-prompt" class="dismiss-btn">
+            Explore seed profiles instead
+          </button>
+        </div>
+        <p class="prompt-note">
+          Already installed? Make sure to <strong>enable it</strong> and <strong>configure your pubkey</strong> in the extension settings.
+        </p>
+      </div>
+    </div>
 
     <!-- Main content -->
     <div id="main">
@@ -49,7 +92,7 @@
           </div>
           <div class="legend-items">
             <div class="legend-item">
-              <span class="dot blue"></span> Root/Seed
+              <span class="dot blue"></span> Root/You
             </div>
             <div class="legend-item">
               <span class="dot green"></span> Trusted ≥70%
@@ -61,15 +104,15 @@
               <span class="dot red"></span> Untrusted &lt;30%
             </div>
           </div>
-          <h4>Path Bonus</h4>
-          <p class="legend-text">Multiple paths to a node increase trust. +10% per additional path (max +50%)</p>
+          <h4>Trust Formula</h4>
+          <p class="legend-text">1 hop: 100%, 2 hops: 50%, 3 hops: 25%<br>+ path bonus (multiple paths increase trust)</p>
         </div>
 
         <!-- Loading overlay -->
         <div id="loading" class="hidden">
           <div class="spinner"></div>
           <p>Building trust graph...</p>
-          <p class="loading-sub">Querying relays for follow lists</p>
+          <p class="loading-sub">Querying your Web of Trust</p>
         </div>
       </div>
 
@@ -97,6 +140,17 @@
               <span class="stat-label">mutual</span>
             </div>
           </div>
+          
+          <!-- Extension-specific details -->
+          <div id="ext-details" class="ext-details hidden">
+            <h4>Extension Data</h4>
+            <div class="ext-stats">
+              <span>Distance: <strong id="ext-distance">?</strong></span>
+              <span>Paths: <strong id="ext-paths">?</strong></span>
+            </div>
+            <button id="common-follows-btn" class="small-btn hidden">Show Common Follows</button>
+          </div>
+          
           <p id="node-bio" class="bio"></p>
           <a id="node-link" href="#" target="_blank" class="view-btn">View on njump →</a>
           <div id="trust-path">
