@@ -1,0 +1,24 @@
+{
+  "name": "consensus",
+  "label": "Consensus View 🤝",
+  "description": "Merged view from all seed profiles. Nodes appearing in multiple profiles get boosted trust.",
+  "root": "npub19jkhc5nyk9zazxy8yw7mfw2k46slqpam82gzas79ek5fhc4c6qhs5yur27",
+  "seeds": [
+    "npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6",
+    "npub1xtscya34g58tk0z605fvr788k263gsu6cy9x0mhnm87echrgufzsevkk5s",
+    "npub1gcxzte5zlkncx26j68ez60fzkvtkm9e0vrwdcvsjakxf9mu9qewqlfnj5z",
+    "npub12rv5lskctqxxs2c8rf2zlzc7xx3qpvzs3w4etgemauy9thegr43sf485vg",
+    "npub107jk7htfv243u0x5ynn43scq9wrxtaasmrwwa8lfu2ydwag6efrql394xl",
+    "npub1sn0wdenkukak0d9dfczzeacvhkrgz92ak56egt7vdgzn8ssq6mvq9dg7x7",
+    "npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m",
+    "npub1l2vyh47mk2p0qlsku7hg0vn29faehy9hy34ygaclpn66ukqp3afqutajft",
+    "npub1s5yq6wadwrxde4lhfs56gvuj3ecm3ph9nd99sf4f9wd7s0f09xnsfa6uhd",
+    "npub1guh5grefa7vkay4ps6udxg8lrqxg2kgr3qh9n4gduxut64nfxq0q9y6hjk",
+    "npub1a2cww4kn9wqte4ry70vyfwqyqvpswksna27rtpd6695r9kf4lmrsa0t5m8",
+    "npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc",
+    "npub1az9xj85cmxv8e9j9y80lvqp97crsqdu2fpu3srwthd99qfu9qsgstam8y8",
+    "npub1qny3tkh0acurzla8x3zy4nhrjz5zd8l9sy9jys09umwng00manysew95gx"
+  ],
+  "hop_weights": [1.0, 0.5, 0.25, 0.1],
+  "max_hops": 3
+}

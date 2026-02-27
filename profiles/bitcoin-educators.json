@@ -1,0 +1,20 @@
+{
+  "name": "bitcoin-educators",
+  "label": "Bitcoin Educators 🎓",
+  "description": "Prominent Bitcoin educators, podcasters, and thought leaders.",
+  "root": "npub1s5yq6wadwrxde4lhfs56gvuj3ecm3ph9nd99sf4f9wd7s0f09xnsfa6uhd",
+  "seeds": [
+    "npub1s5yq6wadwrxde4lhfs56gvuj3ecm3ph9nd99sf4f9wd7s0f09xnsfa6uhd",
+    "npub1guh5grefa7vkay4ps6udxg8lrqxg2kgr3qh9n4gduxut64nfxq0q9y6hjk",
+    "npub1a2cww4kn9wqte4ry70vyfwqyqvpswksna27rtpd6695r9kf4lmrsa0t5m8",
+    "npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc",
+    "npub1az9xj85cmxv8e9j9y80lvqp97crsqdu2fpu3srwthd99qfu9qsgstam8y8",
+    "npub1qny3tkh0acurzla8x3zy4nhrjz5zd8l9sy9jys09umwng00manysew95gx",
+    "npub1xzuej94pvqzwy0ynemeq6phct96wjpplqqey4p58qmepluejnan82q8vgz",
+    "npub17u5dneh8qjp43ecfxlt7n7u245zu4fhnaq3g6x4vq05am2hewvpsq5450f",
+    "npub1trr5r2nrpsk6xkjk5a7p6pfcryyt6yzsflwjmz6r7uj7lfkjxxtq78hdpu",
+    "npub1utx00neqgqln72j22kej3ux7803c2k986henvvha4thuwfkper4s7r50e8"
+  ],
+  "hop_weights": [1.0, 0.5, 0.25, 0.1],
+  "max_hops": 3
+}

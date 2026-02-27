@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WoT Playground - Nostr Trust Graph</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.5/dist/force-graph.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <div class="header-left">
+        <h1>🌐 WoT Playground</h1>
+      </div>
+      <div class="header-center">
+        <input type="text" id="search-input" placeholder="Search by name or npub...">
+      </div>
+      <div class="header-right">
+        <select id="profile-select">
+          <option value="">Loading profiles...</option>
+        </select>
+        <div class="hops-control">
+          <label>Hops:</label>
+          <input type="range" id="hops-slider" min="1" max="4" value="2">
+          <span id="hops-value">2</span>
+        </div>
+        <button id="toggle-dim" class="toggle-btn active">2D</button>
+        <button id="toggle-dim" class="toggle-btn">3D</button>
+        <button id="load-btn" class="primary-btn">Load Graph</button>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <div id="main">
+      <!-- Graph container -->
+      <div id="graph-container">
+        <div id="graph"></div>
+        
+        <!-- Legend -->
+        <div id="legend">
+          <h3>Trust Score</h3>
+          <div class="legend-gradient"></div>
+          <div class="legend-labels">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="dot blue"></span> Root/Seed
+            </div>
+            <div class="legend-item">
+              <span class="dot green"></span> Trusted ≥70%
+            </div>
+            <div class="legend-item">
+              <span class="dot orange"></span> Neutral 30-69%
+            </div>
+            <div class="legend-item">
+              <span class="dot red"></span> Untrusted &lt;30%
+            </div>
+          </div>
+          <h4>Path Bonus</h4>
+          <p class="legend-text">Multiple paths to a node increase trust. +10% per additional path (max +50%)</p>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="loading" class="hidden">
+          <div class="spinner"></div>
+          <p>Building trust graph...</p>
+          <p class="loading-sub">Querying relays for follow lists</p>
+        </div>
+      </div>
+
+      <!-- Details panel -->
+      <aside id="details-panel" class="hidden">
+        <button id="close-panel" class="close-btn">&times;</button>
+        <div id="node-details">
+          <img id="node-avatar" src="" alt="Avatar" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2260%22 text-anchor=%22middle%22 fill=%22%23888%22 font-size=%2240%22>?</text></svg>'">
+          <h2 id="node-name">Select a node</h2>
+          <p id="node-npub" class="npub"></p>
+          <div id="trust-badge" class="trust-badge">
+            <span id="trust-percent">0%</span> Trusted
+          </div>
+          <div class="node-stats">
+            <div class="stat">
+              <span class="stat-value" id="node-hops">0</span>
+              <span class="stat-label">hops</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="node-paths">0</span>
+              <span class="stat-label">paths</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="node-mutual">—</span>
+              <span class="stat-label">mutual</span>
+            </div>
+          </div>
+          <p id="node-bio" class="bio"></p>
+          <a id="node-link" href="#" target="_blank" class="view-btn">View on njump →</a>
+          <div id="trust-path">
+            <h4>Trust Path</h4>
+            <div id="path-chain"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Stats bar -->
+    <footer id="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Nodes:</span>
+        <span class="stat-value" id="stat-nodes">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Edges:</span>
+        <span class="stat-value" id="stat-edges">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Avg Trust:</span>
+        <span class="stat-value" id="stat-avg-trust">0%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Max Dist:</span>
+        <span class="stat-value" id="stat-max-dist">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Mutuals:</span>
+        <span class="stat-value" id="stat-mutuals">0</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
