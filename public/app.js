@@ -578,7 +578,7 @@ async function showNodeDetails(node) {
   
   // Avatar
   const avatar = document.getElementById('node-avatar');
-  avatar.src = node.picture || '';
+  avatar.src = node.picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${node.id.slice(0,8)}`;
   
   // Name
   document.getElementById('node-name').textContent = node.name || 'Unknown';
