@@ -4,23 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WoT Playground - Nostr Trust Graph</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260302a">
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.5/dist/force-graph.min.js"></script>
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
+
+    <!-- ══════════════════════════════════════
+         Header
+         ══════════════════════════════════════ -->
     <header id="header">
       <div class="header-left">
         <h1>🌐 WoT Playground</h1>
       </div>
+
       <div class="header-center">
         <input type="text" id="search-input" placeholder="Search by name or npub...">
       </div>
+
       <div class="header-right">
-        <!-- Extension Status -->
+        <!-- Extension badge (visible in extension mode) -->
         <div id="extension-status" class="hidden">
           <div id="extension-badge" class="extension-badge disconnected">
             <span class="status-dot"></span>
@@ -28,35 +33,58 @@
           </div>
           <span id="extension-npub" class="extension-npub"></span>
         </div>
-        
-        <!-- Mode Toggle -->
+
+        <!-- Mode selector -->
         <select id="mode-toggle" class="mode-select">
           <option value="extension">My WoT</option>
           <option value="server">Seed Profiles</option>
         </select>
-        
-        <!-- My WoT Button (extension mode) -->
-        <button id="my-wot-btn" class="primary-btn hidden">🔄 Refresh My WoT</button>
-        
-        <!-- Profile Controls (server mode) -->
+
+        <!-- Seeder perspective (seeders mode only) -->
+        <div id="seeder-controls" class="hidden">
+          <select id="seeder-select">
+            <option value="all">All Seeds (consensus)</option>
+            <!-- populated by JS -->
+          </select>
+        </div>
+
+        <!-- Profile selector (server mode only) -->
         <div id="profile-controls" class="hidden">
           <select id="profile-select">
             <option value="">Loading profiles...</option>
           </select>
         </div>
-        
+
+        <!-- Refresh button (extension mode only) -->
+        <button id="my-wot-btn" class="secondary-btn hidden">↺ Refresh</button>
+
+        <!-- Hops -->
         <div class="hops-control">
           <label>Hops:</label>
           <input type="range" id="hops-slider" min="1" max="4" value="2">
           <span id="hops-value">2</span>
         </div>
-        <button id="toggle-dim" class="toggle-btn active">2D</button>
-        <button id="toggle-dim" class="toggle-btn">3D</button>
+
+        <!-- 2D / 3D -->
+        <div class="dim-toggle">
+          <button class="toggle-btn active">2D</button>
+          <button class="toggle-btn">3D</button>
+        </div>
+
+        <!-- Load button (server mode only) -->
         <button id="load-btn" class="primary-btn">Load Graph</button>
+
+        <!-- Export graph data -->
+        <button id="export-btn" class="icon-btn" title="Export Graph JSON">📥</button>
+
+        <!-- Scoring panel toggle -->
+        <button id="scoring-toggle" class="icon-btn" title="Scoring Settings">⚙️</button>
       </div>
     </header>
 
-    <!-- Install Extension Prompt -->
+    <!-- ══════════════════════════════════════
+         Install Extension Prompt (fullscreen)
+         ══════════════════════════════════════ -->
     <div id="install-prompt" class="install-prompt hidden">
       <div class="prompt-content">
         <h2>🔌 Install the Nostr WoT Extension</h2>
@@ -76,12 +104,15 @@
       </div>
     </div>
 
-    <!-- Main content -->
+    <!-- ══════════════════════════════════════
+         Main — graph + node details
+         ══════════════════════════════════════ -->
     <div id="main">
-      <!-- Graph container -->
+
+      <!-- Graph -->
       <div id="graph-container">
         <div id="graph"></div>
-        
+
         <!-- Legend -->
         <div id="legend">
           <h3>Trust Score</h3>
@@ -91,21 +122,15 @@
             <span>100%</span>
           </div>
           <div class="legend-items">
-            <div class="legend-item">
-              <span class="dot blue"></span> Root/You
-            </div>
-            <div class="legend-item">
-              <span class="dot green"></span> Trusted ≥70%
-            </div>
-            <div class="legend-item">
-              <span class="dot orange"></span> Neutral 30-69%
-            </div>
-            <div class="legend-item">
-              <span class="dot red"></span> Untrusted &lt;30%
-            </div>
+            <div class="legend-item"><span class="dot" style="background:#4F46E5"></span> Root / Seed</div>
+            <div class="legend-item"><span class="dot" style="background:#10B981"></span> Very High ≥90%</div>
+            <div class="legend-item"><span class="dot" style="background:#22C55E"></span> High ≥50%</div>
+            <div class="legend-item"><span class="dot" style="background:#F59E0B"></span> Medium ≥25%</div>
+            <div class="legend-item"><span class="dot" style="background:#F97316"></span> Low ≥10%</div>
+            <div class="legend-item"><span class="dot" style="background:#EF4444"></span> Very Low &lt;10%</div>
           </div>
           <h4>Trust Formula</h4>
-          <p class="legend-text">1 hop: 100%, 2 hops: 50%, 3 hops: 25%<br>+ path bonus (multiple paths increase trust)</p>
+          <p class="legend-text">score = base × parentRep<br>+ path bonus × parentRep<br>⚙️ adjust in Scoring panel</p>
         </div>
 
         <!-- Loading overlay -->
@@ -116,13 +141,13 @@
         </div>
       </div>
 
-      <!-- Details panel -->
+      <!-- Node details panel (right) -->
       <aside id="details-panel" class="hidden">
-        <button id="close-panel" class="close-btn">&times;</button>
+        <button id="close-panel" class="panel-close-btn">&times;</button>
         <div id="node-details">
           <img id="node-avatar" src="" alt="Avatar" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2260%22 text-anchor=%22middle%22 fill=%22%23888%22 font-size=%2240%22>?</text></svg>'">
           <h2 id="node-name">Select a node</h2>
-          <p id="node-npub" class="npub"></p>
+          <p id="node-npub" class="npub" title="Click to copy"></p>
           <div id="trust-badge" class="trust-badge">
             <span id="trust-percent">0%</span> Trusted
           </div>
@@ -136,11 +161,15 @@
               <span class="stat-label">paths</span>
             </div>
             <div class="stat">
+              <span class="stat-value" id="node-parent-trust">—</span>
+              <span class="stat-label">parent rep</span>
+            </div>
+            <div class="stat">
               <span class="stat-value" id="node-mutual">—</span>
               <span class="stat-label">mutual</span>
             </div>
           </div>
-          
+
           <!-- Extension-specific details -->
           <div id="ext-details" class="ext-details hidden">
             <h4>Extension Data</h4>
@@ -150,9 +179,12 @@
             </div>
             <button id="common-follows-btn" class="small-btn hidden">Show Common Follows</button>
           </div>
-          
+
           <p id="node-bio" class="bio"></p>
-          <a id="node-link" href="#" target="_blank" class="view-btn">View on njump →</a>
+          <div class="node-actions">
+            <a id="node-link" href="#" target="_blank" class="view-btn">View on njump →</a>
+            <button id="explore-wot-btn" class="explore-btn">🔍 Explore their WoT</button>
+          </div>
           <div id="trust-path">
             <h4>Trust Path</h4>
             <div id="path-chain"></div>
@@ -161,7 +193,98 @@
       </aside>
     </div>
 
-    <!-- Stats bar -->
+    <!-- ══════════════════════════════════════
+         Scoring Settings Panel (right sidebar)
+         ══════════════════════════════════════ -->
+    <div id="scoring-panel" class="scoring-panel hidden">
+      <div class="scoring-panel-header">
+        <h3>⚙️ Scoring Settings</h3>
+        <button id="scoring-close" class="panel-close-btn">&times;</button>
+      </div>
+
+      <div class="scoring-inner">
+
+        <div class="scoring-section">
+          <h4>Hop Base Weights</h4>
+          <p class="scoring-hint">How much each distance level is worth before path/parent adjustments</p>
+          <div class="scoring-row">
+            <label>Hop 1 <span class="scoring-badge">direct</span></label>
+            <input type="range" id="w1" min="0.5" max="1.0" step="0.05" value="1.0">
+            <span class="scoring-val" id="w1-val">1.00</span>
+          </div>
+          <div class="scoring-row">
+            <label>Hop 2</label>
+            <input type="range" id="w2" min="0.1" max="0.8" step="0.05" value="0.5">
+            <span class="scoring-val" id="w2-val">0.50</span>
+          </div>
+          <div class="scoring-row">
+            <label>Hop 3</label>
+            <input type="range" id="w3" min="0.05" max="0.5" step="0.05" value="0.25">
+            <span class="scoring-val" id="w3-val">0.25</span>
+          </div>
+          <div class="scoring-row">
+            <label>Hop 4+</label>
+            <input type="range" id="w4" min="0.01" max="0.3" step="0.01" value="0.1">
+            <span class="scoring-val" id="w4-val">0.10</span>
+          </div>
+        </div>
+
+        <div class="scoring-section">
+          <h4>Path Bonus</h4>
+          <p class="scoring-hint">Extra trust per additional path to the node (additive)</p>
+          <div class="scoring-row">
+            <label>Hop 2 +/path</label>
+            <input type="range" id="p2" min="0" max="0.3" step="0.01" value="0.15">
+            <span class="scoring-val" id="p2-val">+0.15</span>
+          </div>
+          <div class="scoring-row">
+            <label>Hop 3 +/path</label>
+            <input type="range" id="p3" min="0" max="0.2" step="0.01" value="0.10">
+            <span class="scoring-val" id="p3-val">+0.10</span>
+          </div>
+          <div class="scoring-row">
+            <label>Hop 4 +/path</label>
+            <input type="range" id="p4" min="0" max="0.1" step="0.005" value="0.05">
+            <span class="scoring-val" id="p4-val">+0.05</span>
+          </div>
+          <div class="scoring-row">
+            <label>Max bonus</label>
+            <input type="range" id="pmax" min="0.1" max="1.0" step="0.05" value="0.5">
+            <span class="scoring-val" id="pmax-val">0.50</span>
+          </div>
+        </div>
+
+        <div class="scoring-section">
+          <h4>Hop Ceilings</h4>
+          <p class="scoring-hint">Hard max score per distance — no path count can breach this</p>
+          <div class="scoring-row">
+            <label>Hop 2 max</label>
+            <input type="range" id="c2" min="0.2" max="1.0" step="0.05" value="0.70">
+            <span class="scoring-val" id="c2-val">0.70</span>
+          </div>
+          <div class="scoring-row">
+            <label>Hop 3 max</label>
+            <input type="range" id="c3" min="0.05" max="0.5" step="0.01" value="0.24">
+            <span class="scoring-val" id="c3-val">0.24</span>
+          </div>
+          <div class="scoring-row">
+            <label>Hop 4 max</label>
+            <input type="range" id="c4" min="0.01" max="0.2" step="0.005" value="0.09">
+            <span class="scoring-val" id="c4-val">0.09</span>
+          </div>
+        </div>
+
+        <div class="scoring-footer">
+          <code class="scoring-formula">score = min(base × parentRep + bonus × parentRep, ceiling[hop])</code>
+          <button id="scoring-reset" class="reset-btn">↺ Reset Defaults</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         Stats bar
+         ══════════════════════════════════════ -->
     <footer id="stats-bar">
       <div class="stat-item">
         <span class="stat-label">Nodes:</span>
@@ -184,8 +307,9 @@
         <span class="stat-value" id="stat-mutuals">0</span>
       </div>
     </footer>
-  </div>
 
-  <script src="app.js"></script>
+  </div><!-- #app -->
+
+  <script src="app.js?v=20260302a"></script>
 </body>
 </html>
